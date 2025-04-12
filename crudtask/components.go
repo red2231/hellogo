@@ -18,12 +18,14 @@ type Server struct{
 func NewServer(db *sql.DB)*Server{
 s:=&Server{db: db, mux: http.NewServeMux()}
 s.routes()
+
 return s
 }
 
 func(s *Server) routes(){
 s.mux.HandleFunc("GET /task/{id}", s.getId)
 s.mux.HandleFunc("GET /task", s.getAll)
+s.mux.HandleFunc("POST /task", s.createTask)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request){
