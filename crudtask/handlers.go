@@ -57,6 +57,7 @@ if err!=nil{
 }
  tasks := []Task{}
 for values.Next(){
+	//var task Task
 task:=new(Task)
 values.Scan(&task.Name, &task.Description, &task.Scheduled)
 tasks = append(tasks, *task)
