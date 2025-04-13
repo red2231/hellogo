@@ -72,10 +72,9 @@ io.Writer.Write(w, val)
 }
 func(s *Server) createTask(w http.ResponseWriter, r *http.Request){
 var task Task
-
 bites, err:=io.ReadAll(r.Body)
 if err!=nil{
-	log.Fatal(err)
+	log.Fatalf("erro na leitura %s", err)
 }
 erro:=json.Unmarshal(bites, &task)
 if erro!=nil{

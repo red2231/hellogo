@@ -15,20 +15,20 @@ type Server struct{
 	db *sql.DB
 	mux *http.ServeMux
 }
+
 func NewServer(db *sql.DB)*Server{
 s:=&Server{db: db, mux: http.NewServeMux()}
-s.routes()
-
+go s.routes()
 return s
 }
 
 func(s *Server) routes(){
-s.mux.HandleFunc("GET /task/{id}", s.getId)
-s.mux.HandleFunc("GET /task", s.getAll)
-s.mux.HandleFunc("POST /task", s.createTask)
+ go s.mux.HandleFunc("GET /task/{id}", s.getId)
+ go s.mux.HandleFunc("GET /task", s.getAll)
+go s.mux.HandleFunc("POST /task", s.createTask)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request){
-	s.mux.ServeHTTP(w, r)
+	 s.mux.ServeHTTP(w, r)
 }
 
