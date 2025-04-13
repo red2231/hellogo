@@ -12,9 +12,7 @@ import (
 
 
 func(s *Server) getId(w http.ResponseWriter, r *http.Request){
-
 	id, _:=strconv.Atoi(r.PathValue("id")) 
-
 var task Task
 erro:=make(chan error)
 sq:= "select name, description, scheduled from task where id = ?"
@@ -59,15 +57,14 @@ if err!=nil{
 }
  tasks := []Task{}
 for values.Next(){
-var task Task
+task:=new(Task)
 values.Scan(&task.Name, &task.Description, &task.Scheduled)
-tasks = append(tasks, task)
+tasks = append(tasks, *task)
 }
-
 val, err:=json.Marshal(tasks)
-if err!=nil{
-	log.Fatal(err)
-}
+if err!=nil{log.Fatal(err)
+return}
+
 io.Writer.Write(w, val)
 }
 func(s *Server) createTask(w http.ResponseWriter, r *http.Request){
