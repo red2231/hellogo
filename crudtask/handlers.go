@@ -10,7 +10,22 @@ import (
 )
 
 
+func reqToTask(r http.Request)*Task{
+var task Task
+bites, err:=io.ReadAll(r.Body)
+if err!=nil{
+	log.Fatal(err.Error())
+return nil
+}
 
+err=json.Unmarshal(bites, &task)
+if err!=nil{
+	log.Fatal(err.Error())
+	return nil
+}
+
+return &task
+}
 func(s *Server) getId(w http.ResponseWriter, r *http.Request){
 	id, _:=strconv.Atoi(r.PathValue("id")) 
 var task Task
@@ -55,31 +70,70 @@ values, err:=s.db.Query(all)
 if err!=nil{
 	log.Fatal(err)
 }
+
  tasks := []Task{}
 for values.Next(){
-	//var task Task
-task:=new(Task)
+	var task Task
+
 values.Scan(&task.Name, &task.Description, &task.Scheduled)
-tasks = append(tasks, *task)
+tasks = append(tasks, task)
 }
 val, err:=json.Marshal(tasks)
 if err!=nil{log.Fatal(err)
 return}
-
 io.Writer.Write(w, val)
 }
 func(s *Server) createTask(w http.ResponseWriter, r *http.Request){
-var task Task
-bites, err:=io.ReadAll(r.Body)
+task:=reqToTask(*r)
+result:=make(chan sql.Result)
+er:=make(chan error)
+go func(){
+ value, err:=s.db.Exec("insert into task(name, description, scheduled) values (?,?,?)", task.Name,task.Description,task.Scheduled)
 if err!=nil{
-	log.Fatalf("erro na leitura %s", err)
+	er<-err
+	return
 }
-erro:=json.Unmarshal(bites, &task)
-if erro!=nil{
-	log.Fatal(erro.Error())
-}
-
-go s.db.Exec("insert into task(name, description, scheduled) values (?,?,?)", task.Name,task.Description,task.Scheduled)
+result<-value
+}()
+select{
+	case ero:= <-er:
+	log.Fatal(ero.Error())
+	return
+	case <-result:
  w.WriteHeader(http.StatusCreated)
 io.WriteString(w, "tarefa criada com sucesso")
+}}
+func(s *Server) updateTask(w http.ResponseWriter, r *http.Request){
+task :=reqToTask(*r)
+go s.db.Exec("UPDATE task SET name=?, description=?, scheduled =? where id =?", task.Name, task.Description, task.Scheduled, task.Id)
+w.WriteHeader(http.StatusOK)
+io.WriteString(w, "tarefa atualizada")
+}
+func(s *Server) deleteTask(w http.ResponseWriter, r *http.Request){
+		id, _:=strconv.Atoi(r.PathValue("id")) 
+		value :=make(chan sql.Result)
+		erro:=make(chan error)
+		go func(){
+valuee, err:=s.db.Exec("Delete from task where id =?", id)
+		if err!=nil{
+			
+			erro<-err
+			return
+		}
+value<-valuee
+		}()
+	select {
+	
+	case erra:=<-erro:
+	
+	w.WriteHeader(http.StatusNotFound)
+	io.WriteString(w, "Tarefa não encontrada para deleção")
+	log.Println(erra.Error())
+		return
+	case <-value:
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, "tarefa deletadas")
+	return
+	}
+
 }

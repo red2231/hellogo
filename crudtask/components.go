@@ -7,6 +7,7 @@ import (
 )
 
 type Task struct{
+	Id int `json:"id,omitempty"`
 	Name string `json:"name"`
 	Description string `json:"description"`
 	Scheduled time.Time `json:"scheduled"`
@@ -18,14 +19,16 @@ type Server struct{
 
 func NewServer(db *sql.DB)*Server{
 s:=&Server{db: db, mux: http.NewServeMux()}
-go s.routes()
+ s.routes()
 return s
 }
 
 func(s *Server) routes(){
- go s.mux.HandleFunc("GET /task/{id}", s.getId)
- go s.mux.HandleFunc("GET /task", s.getAll)
-go s.mux.HandleFunc("POST /task", s.createTask)
+ s.mux.HandleFunc("GET /task/{id}", s.getId)
+ s.mux.HandleFunc("GET /task", s.getAll)
+ s.mux.HandleFunc("POST /task", s.createTask)
+ s.mux.HandleFunc("PUT /task", s.updateTask)
+ s.mux.HandleFunc("DELETE /task/{id}", s.deleteTask)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request){
