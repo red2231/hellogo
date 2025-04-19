@@ -105,35 +105,50 @@ io.WriteString(w, "tarefa criada com sucesso")
 }}
 func(s *Server) updateTask(w http.ResponseWriter, r *http.Request){
 task :=reqToTask(*r)
-go s.db.Exec("UPDATE task SET name=?, description=?, scheduled =? where id =?", task.Name, task.Description, task.Scheduled, task.Id)
+go s.db.ExecContext(r.Context(),"UPDATE task SET name=?, description=?, scheduled =? where id =?", task.Name, task.Description, task.Scheduled, task.Id)
 w.WriteHeader(http.StatusOK)
 io.WriteString(w, "tarefa atualizada")
 }
 func(s *Server) deleteTask(w http.ResponseWriter, r *http.Request){
-		id, _:=strconv.Atoi(r.PathValue("id")) 
+		id, err:=strconv.Atoi(r.PathValue("id")) 
+	if err!=nil{
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println(err.Error())
+		return
+	}
 		value :=make(chan sql.Result)
 		erro:=make(chan error)
 		go func(){
-valuee, err:=s.db.Exec("Delete from task where id =?", id)
+valuee, err:=s.db.ExecContext(r.Context(),"Delete from task where id =?", id)
 		if err!=nil{
-			
+		
 			erro<-err
 			return
 		}
+		
 value<-valuee
 		}()
+	
 	select {
-	
-	case erra:=<-erro:
-	
-	w.WriteHeader(http.StatusNotFound)
-	io.WriteString(w, "Tarefa não encontrada para deleção")
-	log.Println(erra.Error())
+	case err := <-erro:
+		log.Println("Erro ao deletar:", err)
+		http.Error(w, "Erro ao deletar tarefa", http.StatusInternalServerError)
 		return
-	case <-value:
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, "tarefa deletadas")
-	return
-	}
 
+	case result := <-value:
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			log.Println("Erro ao verificar RowsAffected:", err)
+			http.Error(w, "Erro interno ao verificar deleção", http.StatusInternalServerError)
+			return
+		}
+
+		if rowsAffected == 0 {
+			http.Error(w, "Tarefa não encontrada", http.StatusNotFound)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "Tarefa deletada com sucesso")
+	}
 }
